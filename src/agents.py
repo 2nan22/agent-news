@@ -5,27 +5,34 @@ from __future__ import annotations
 import logging
 import os
 
-from crewai import Agent
-from langchain_openai import ChatOpenAI
+from crewai import Agent, LLM
 
 from src.tools import TavilySearchTool
 
 logger = logging.getLogger(__name__)
 
 
-def _make_llm() -> ChatOpenAI:
-    """로컬 Ollama를 가리키는 ChatOpenAI 인스턴스 생성.
+def _make_llm() -> LLM:
+    """로컬 Ollama를 가리키는 CrewAI LLM 인스턴스 생성.
+
+    CrewAI 0.80+는 내부적으로 litellm을 사용한다.
+    litellm이 OpenAI 호환 엔드포인트임을 인식하려면 모델명에 'openai/' 프리픽스가 필요하다.
+
+    상용 API 전환 시:
+      - OpenAI:    model="openai/gpt-4o",    base_url 제거, api_key="sk-..."
+      - Anthropic: model="anthropic/claude-opus-4-7", api_key="..."
 
     Docker 환경: OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
     로컬 직접 실행: OLLAMA_BASE_URL=http://localhost:11434/v1
 
     Returns:
-        Ollama 연결용 ChatOpenAI 클라이언트.
+        Ollama 연결용 CrewAI LLM 인스턴스.
     """
-    return ChatOpenAI(
+    model = os.environ.get("OLLAMA_MODEL", "gemma4")
+    return LLM(
+        model=f"openai/{model}",  # litellm의 OpenAI 호환 엔드포인트 프리픽스
         base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
-        api_key="ollama",  # Ollama는 키 검증 안 함, 비어있으면 LangChain이 에러를 냄
-        model=os.environ.get("OLLAMA_MODEL", "gemma4"),
+        api_key="ollama",  # Ollama는 키 검증 안 함, 비어있으면 litellm이 에러를 냄
         temperature=0.3,
     )
 
