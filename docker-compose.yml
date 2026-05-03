@@ -1,0 +1,32 @@
+# Docker Compose Specification (v2) — version 필드 없음
+# 공식 문서: https://docs.docker.com/compose/compose-file/
+
+services:
+  crew_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: ai-agent/crew:latest
+    container_name: ai_agent_crew
+
+    # .env 파일에서 환경 변수 주입 (OLLAMA_BASE_URL, OLLAMA_MODEL, TAVILY_API_KEY)
+    env_file: .env
+
+    # Mac Docker Desktop: host.docker.internal이 자동 정의됨
+    # Linux Docker Engine: host-gateway alias로 명시 필요
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      # 컨테이너 종료 후에도 분석 결과 파일을 호스트에 보존
+      - ./output:/app/output
+
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
